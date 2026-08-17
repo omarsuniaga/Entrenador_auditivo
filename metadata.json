@@ -1,0 +1,8 @@
+{
+  "name": "Remix AudioFit - Hexagonal Ear Training \u0026 Pitch Precision System",
+  "description": "Sistema de entrenamiento auditivo y calibración de precisión de frecuencia en tiempo real con arquitectura hexagonal, dificultad adaptativa dinámica, reportes de progreso y multijugador en vivo.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

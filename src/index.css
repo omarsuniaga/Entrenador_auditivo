@@ -1,0 +1,114 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: dark;
+}
+
+html.theme-light {
+  color-scheme: light;
+}
+
+body {
+  background-color: #05070a;
+  color: #e2e8f0;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  overflow-x: hidden;
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+html.theme-light body {
+  background-color: #f1f5f9;
+  color: #0f172a;
+}
+
+/* Light Theme Component Overrides for High-Contrast & Legibility */
+html.theme-light .light-card-bg {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.06), 0 4px 6px -2px rgba(0, 0, 0, 0.03) !important;
+}
+
+html.theme-light .light-nav-bg {
+  background-color: rgba(255, 255, 255, 0.92) !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+html.theme-light .light-subtle-bg {
+  background-color: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+  color: #1e293b !important;
+}
+
+/* Custom Webkit Range Slider - Immersive UI Cyan Glow */
+input[type="range"] {
+  accent-color: #06b6d4;
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 8px;
+  background: #0a0d14;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+html.theme-light input[type="range"]::-webkit-slider-runnable-track {
+  background: #e2e8f0;
+  border: 1px solid #cbd5e1;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 24px;
+  height: 24px;
+  margin-top: -8px;
+  border-radius: 50%;
+  background: #ffffff;
+  cursor: pointer;
+  border: 4px solid #06b6d4;
+  box-shadow: 0 0 20px rgba(6, 182, 212, 0.8), 0 0 40px rgba(6, 182, 212, 0.4);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+  box-shadow: 0 0 25px rgba(6, 182, 212, 1), 0 0 50px rgba(6, 182, 212, 0.6);
+}
+
+input[type="range"]::-webkit-slider-thumb:active {
+  transform: scale(1.25);
+  box-shadow: 0 0 30px rgba(6, 182, 212, 1), 0 0 60px rgba(14, 165, 233, 0.8);
+}
+
+input[type="range"]::-moz-range-track {
+  height: 8px;
+  background: #0a0d14;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+html.theme-light input[type="range"]::-moz-range-track {
+  background: #e2e8f0;
+  border: 1px solid #cbd5e1;
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #ffffff;
+  cursor: pointer;
+  border: 4px solid #06b6d4;
+  box-shadow: 0 0 20px rgba(6, 182, 212, 0.8);
+}
+
+/* Custom scrollbars */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
