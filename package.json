@@ -15,7 +15,7 @@
     "preflight:cloudflare:local": "tsx scripts/preflight-cloudflare-local.ts",
     "start": "node dist/server.cjs",
     "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true});require('fs').rmSync('server.js',{force:true})\"",
-    "test": "tsx tests/test-suite.ts && tsx tests/duel-suite.ts && tsx tests/cloudflare-suite.ts",
+    "test": "tsx tests/test-suite.ts && tsx tests/duel-suite.ts && tsx tests/duel-room-suite.ts && tsx tests/cloudflare-suite.ts",
     "lint": "tsc --noEmit"
   },
   "dependencies": {

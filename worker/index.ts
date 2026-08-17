@@ -8,6 +8,8 @@ import {
   parseSoloSessionRequest,
   type SoloLeaderboardRow
 } from './lib/contracts';
+import { DuelRoom } from './duel/DuelRoom';
+import type { DurableObjectNamespace } from './lib/workersTypes';
 
 interface D1Result<T> {
   results: T[];
@@ -29,7 +31,10 @@ interface Env {
   DB: D1Database;
   TURNSTILE_SECRET_KEY: string;
   PLAYER_TOKEN_SECRET: string;
+  DUEL_ROOMS: DurableObjectNamespace;
 }
+
+export { DuelRoom };
 
 
 interface SoloSessionRow {
@@ -273,6 +278,51 @@ async function completeSoloSession(request: Request, env: Env, sessionId: string
   return json({ sessionId: session.id, score: result.score, accuracy: result.accuracy, durationMs, ranked: true });
 }
 
+// Unambiguous alphabet (no 0/O, 1/I) so a spoken/typed room code can't be misheard.
+const ROOM_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const ROOM_CODE_LENGTH = 5;
+const ROOM_CODE_CREATE_ATTEMPTS = 3;
+
+function generateRoomCode(): string {
+  const bytes = new Uint8Array(ROOM_CODE_LENGTH);
+  crypto.getRandomValues(bytes);
+  return [...bytes].map((byte) => ROOM_CODE_ALPHABET[byte % ROOM_CODE_ALPHABET.length]).join('');
+}
+
+/** Creates a duel room: picks an unused short code (retrying on the astronomically rare
+ * collision), then forwards the client's request body/headers — including any
+ * Authorization bearer token — to that Durable Object's /init. */
+async function createDuelRoom(request: Request, env: Env): Promise<Response> {
+  for (let attempt = 0; attempt < ROOM_CODE_CREATE_ATTEMPTS; attempt++) {
+    const roomId = generateRoomCode();
+    const stub = env.DUEL_ROOMS.get(env.DUEL_ROOMS.idFromName(roomId));
+    const existsResponse = await stub.fetch(new Request('https://duel-room/exists'));
+    const { exists } = (await existsResponse.json()) as { exists: boolean };
+    if (exists) continue;
+
+    const initRequest = new Request(`https://duel-room/init?roomId=${roomId}`, request);
+    return stub.fetch(initRequest);
+  }
+  return json({ error: 'No se pudo generar un código de sala disponible. Probá de nuevo.' }, 503);
+}
+
+function joinDuelRoom(request: Request, env: Env, roomId: string): Promise<Response> {
+  const stub = env.DUEL_ROOMS.get(env.DUEL_ROOMS.idFromName(roomId.toUpperCase()));
+  const joinRequest = new Request('https://duel-room/join', request);
+  return stub.fetch(joinRequest);
+}
+
+/** Forwards a WebSocket upgrade to the room's Durable Object, rewriting only the URL
+ * (the Upgrade/Connection/Sec-WebSocket-* headers and method come along via the `request`
+ * init-clone) so DuelRoom's router sees a plain `/ws` path regardless of the public
+ * route shape. */
+function forwardDuelWebSocket(request: Request, env: Env, roomId: string): Promise<Response> {
+  const stub = env.DUEL_ROOMS.get(env.DUEL_ROOMS.idFromName(roomId.toUpperCase()));
+  const forwardUrl = new URL('https://duel-room/ws');
+  forwardUrl.search = new URL(request.url).search;
+  return stub.fetch(new Request(forwardUrl.toString(), request));
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
@@ -282,6 +332,13 @@ export default {
     if (request.method === 'POST' && url.pathname === '/api/solo-sessions') return startSoloSession(request, env);
     const completionMatch = url.pathname.match(/^\/api\/solo-sessions\/([0-9a-f-]{36})\/complete$/i);
     if (request.method === 'POST' && completionMatch) return completeSoloSession(request, env, completionMatch[1]);
+
+    if (request.method === 'POST' && url.pathname === '/api/duel/rooms') return createDuelRoom(request, env);
+    const duelRoomMatch = url.pathname.match(/^\/api\/duel\/rooms\/([A-Z0-9]{3,12})$/i);
+    if (request.method === 'POST' && duelRoomMatch) return joinDuelRoom(request, env, duelRoomMatch[1]);
+    const duelWsMatch = url.pathname.match(/^\/api\/duel\/rooms\/([A-Z0-9]{3,12})\/ws$/i);
+    if (duelWsMatch) return forwardDuelWebSocket(request, env, duelWsMatch[1]);
+
     if (url.pathname.startsWith('/api/')) return json({ error: 'Ruta no encontrada.' }, 404);
 
     return new Response('AudioFit Cloudflare Worker foundation is active.', { status: 200 });

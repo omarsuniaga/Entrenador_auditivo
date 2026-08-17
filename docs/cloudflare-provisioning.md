@@ -1,6 +1,9 @@
 # Provisionamiento y despliegue en Cloudflare
 
-Esta guía configura la infraestructura real cuando el código de Worker esté listo para desplegarse. **No ejecutés el despliegue mientras `worker/duel/DuelRoom.ts` no exista y se exporte**: el binding `DUEL_ROOMS` ya está reservado en `wrangler.jsonc`, pero el núcleo de Duelo pertenece a la siguiente fase del SDD.
+Esta guía configura la infraestructura real del Worker. `worker/duel/DuelRoom.ts` ya existe
+y se exporta (2026-08-17) — `npx wrangler deploy --dry-run` bundlea sin errores y reconoce
+tanto el binding `DUEL_ROOMS` (Durable Object) como `DB` (D1). El despliegue real solo
+sigue pendiente de Turnstile y de los secretos del Worker (sección 5), no de código.
 
 ## Resultado esperado
 
@@ -62,15 +65,20 @@ No edites una migración ya aplicada. Para corregir producción, agregá una mig
 
 ## 4. Durable Objects
 
-`wrangler.jsonc` ya declara:
+`wrangler.jsonc` declara:
 
 - binding `DUEL_ROOMS` asociado a la clase `DuelRoom`;
 - migración de clase SQLite `v1-duel-room`;
-- cron horario para la retención futura.
+- cron horario para la retención futura (declarado; todavía no hay un handler `scheduled` que lo consuma — no bloquea el deploy, pero no hace nada por ahora).
 
-No hay un recurso separado que se cree manualmente: Cloudflare provisiona la clase al desplegar el Worker que la exporta. No renombres, elimines ni cambies de almacenamiento la clase sin una migración de Durable Objects adicional. El estado de una sala debe seguir siendo recuperable tras hibernación; por eso el despliegue de Duelo se bloquea hasta implementar la clase y sus pruebas.
+`DuelRoom` vive en `worker/duel/DuelRoom.ts`: una instancia por sala activa (`env.DUEL_ROOMS.idFromName(código)`), usando la WebSocket Hibernation API (la sala puede evacuarse de memoria con los sockets abiertos) y `ctx.storage.setAlarm()` para el countdown previo a la ronda, el deadline de cada ronda y la ventana de reconexión — nunca `setTimeout`, que no sobrevive una hibernación. Toda la lógica de juego (puntaje, ganador de ronda, abandono, empate) es pura y vive separada en `worker/duel/roomState.ts`, probada en `tests/duel-room-suite.ts` sin necesitar un runtime de Workers real. Al finalizar un duelo, si al menos un jugador se autenticó (`Authorization: Bearer <token de jugador>`, el mismo sistema de identidad anónima que ranking individual), se escribe en `duel_matches`/`duel_participants`; los invitados pueden jugar pero sus resultados no entran al ranking (la FK de `duel_participants.player_id` exige una fila real en `players`).
 
-**Importante:** `worker/lib/deploymentConfig.ts` exige el binding `DUEL_ROOMS`, su migración SQLite y el cron **siempre**, no solo cuando el `database_id` es el marcador — son tres condiciones independientes de la misma validación. Esto significa que no existe un "deploy parcial de solo ranking" sin tocar ese validador: mientras `DuelRoom` no exista y esté probada, `wrangler deploy` va a fallar igual aunque D1 ya esté provisionada. Se evaluó quitar temporalmente el binding para desbloquear un deploy parcial (2026-08-17) y se descartó porque requería modificar `deploymentConfig.ts`, que es justamente el contrato de despliegue del Worker.
+No hay un recurso separado que se cree manualmente: Cloudflare provisiona la clase al desplegar el Worker que la exporta. No renombres, elimines ni cambies de almacenamiento la clase sin una migración de Durable Objects adicional. Verificado con `npx wrangler deploy --dry-run` (2026-08-17): el Worker bundlea sin errores y reconoce ambos bindings (`DUEL_ROOMS` y `DB`).
+
+**Rutas del Worker para Duelo:**
+- `POST /api/duel/rooms` — crea una sala (genera el código de 5 caracteres, reintenta en la colisión improbable).
+- `POST /api/duel/rooms/:codigo` — une un jugador a una sala existente (o reconecta con `sessionToken`).
+- `GET /api/duel/rooms/:codigo/ws` — upgrade a WebSocket; requiere `playerId`/`sessionToken` como query params, ya emitidos por los dos endpoints anteriores.
 
 ## 5. Secretos y variables
 
