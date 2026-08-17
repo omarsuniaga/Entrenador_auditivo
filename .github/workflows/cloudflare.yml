@@ -12,6 +12,8 @@ permissions:
 jobs:
   preflight:
     runs-on: ubuntu-latest
+    outputs:
+      has_deploy_token: ${{ steps.token_check.outputs.present }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -20,10 +22,16 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run preflight:cloudflare:local
+      # Referencing `secrets` directly in a job-level `if:` (as the deploy job below
+      # would otherwise need to) makes GitHub reject the whole workflow at startup
+      # before any job runs — confirmed by bisection on 2026-08-17. Computing presence
+      # here, inside a step, and exposing it as a plain string output sidesteps that.
+      - id: token_check
+        run: echo "present=${{ secrets.CLOUDFLARE_API_TOKEN != '' }}" >> "$GITHUB_OUTPUT"
 
   deploy:
     needs: preflight
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master' && secrets.CLOUDFLARE_API_TOKEN != ''
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master' && needs.preflight.outputs.has_deploy_token == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
