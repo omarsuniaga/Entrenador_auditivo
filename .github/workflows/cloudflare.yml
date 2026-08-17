@@ -8,11 +8,6 @@ on:
 
 permissions:
   contents: read
-  # `environment: production` on the deploy job needs this to record the deployment —
-  # without it GitHub rejects the whole workflow at startup ("workflow file issue"),
-  # before any job even runs, because the "production" environment doesn't exist yet
-  # and the default token can't create it.
-  deployments: write
 
 jobs:
   preflight:
@@ -25,30 +20,3 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run preflight:cloudflare:local
-
-  deploy:
-    needs: preflight
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master' && secrets.CLOUDFLARE_API_TOKEN != ''
-    runs-on: ubuntu-latest
-    environment: production
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
-      - name: Validate provisioned Cloudflare configuration
-        run: npm run validate:cloudflare-config
-      - name: Apply D1 migrations remotely
-        run: npx wrangler d1 migrations apply entrenador-auditivo --remote
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      - name: Deploy Worker
-        run: npx wrangler deploy
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      - name: Smoke deployed API
-        run: npm run smoke:cloudflare:deployment
-        env:
-          CLOUDFLARE_SMOKE_URL: ${{ vars.CLOUDFLARE_SMOKE_URL }}
