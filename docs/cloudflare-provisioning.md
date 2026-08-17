@@ -11,7 +11,7 @@ Al terminar, habrá un Worker con su base D1, el namespace de Durable Objects, l
 
 ## 1. Preparar el repositorio y herramientas
 
-1. Confirmá que el repositorio local tiene remoto GitHub y rama `main`. El workflow `.github/workflows/cloudflare.yml` se activa en PRs y en `main`.
+1. Confirmá que el repositorio local tiene remoto GitHub y rama `master` (la rama por defecto de este repo). El workflow `.github/workflows/cloudflare.yml` se activa en PRs y en pushes a `master`.
 2. Instalá dependencias con `npm ci`.
 3. Autenticá Wrangler con una cuenta que tenga permiso para crear D1 y desplegar Workers. No pegues tokens en la terminal, código ni archivos versionados.
 4. Ejecutá primero el control sin credenciales:
@@ -123,7 +123,7 @@ El `.gitignore` actual cubre `.env*`; agregá `.dev.vars` y `.wrangler/` antes d
 4. Configurá los dos secretos del Worker y las configuraciones de GitHub Actions.
 5. Cuando `DuelRoom` esté implementado y probado, desplegá manualmente el primer Worker con `npx wrangler deploy`.
 6. Consultá `https://<worker>/api/health`; debe responder `{ "status": "ok" }`.
-7. Confirmá que `CLOUDFLARE_SMOKE_URL` apunta a esa URL. Después, un push a `main` ejecuta preflight, migraciones remotas, deploy y smoke en ese orden.
+7. Confirmá que `CLOUDFLARE_SMOKE_URL` apunta a esa URL. Después, un push a `master` ejecuta preflight, migraciones remotas, deploy y smoke en ese orden.
 
 El workflow no despliega si falta `CLOUDFLARE_API_TOKEN`; tampoco debe promoverse si falla el preflight o el smoke. Antes de anunciar producción, probá registro Turnstile, sesión individual, ranking y reconexión de Duelo con datos de prueba, nunca con secretos en el navegador.
 

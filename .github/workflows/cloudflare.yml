@@ -3,7 +3,7 @@ name: Cloudflare preflight and deploy
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [master]
   workflow_dispatch:
 
 permissions:
@@ -23,7 +23,7 @@ jobs:
 
   deploy:
     needs: preflight
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && secrets.CLOUDFLARE_API_TOKEN != ''
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master' && secrets.CLOUDFLARE_API_TOKEN != ''
     runs-on: ubuntu-latest
     environment: production
     steps:
