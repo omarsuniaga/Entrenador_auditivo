@@ -8,6 +8,11 @@ on:
 
 permissions:
   contents: read
+  # `environment: production` on the deploy job needs this to record the deployment —
+  # without it GitHub rejects the whole workflow at startup ("workflow file issue"),
+  # before any job even runs, because the "production" environment doesn't exist yet
+  # and the default token can't create it.
+  deployments: write
 
 jobs:
   preflight:
