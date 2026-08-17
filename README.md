@@ -46,3 +46,8 @@ puerto que indique la variable de entorno `PORT`.
 
 Ver [.env.example](.env.example). `PORT` controla el puerto del servidor (por defecto
 3000); es la que usan plataformas como Cloud Run para asignar el puerto en runtime.
+
+## Cloudflare
+
+La guía de [provisionamiento y despliegue en Cloudflare](docs/cloudflare-provisioning.md)
+describe cómo crear D1, configurar secretos, GitHub Actions, variables de la PWA y rollback.

@@ -1,6 +1,6 @@
 import { spawnSync } from 'node:child_process';
 
-const commands = [
+const commands: Array<[string, string[]]> = [
   ['npm', ['run', 'validate:cloudflare-local-config']],
   ['npm', ['run', 'validate:cloudflare-migrations']],
   ['npm', ['test']],
@@ -9,6 +9,6 @@ const commands = [
 ];
 
 for (const [command, args] of commands) {
-  const result = spawnSync(command, args, { stdio: 'inherit', shell: process.platform === 'win32' });
+  const result = spawnSync([command, ...args].join(' '), { stdio: 'inherit', shell: true });
   if (result.status !== 0) process.exit(result.status ?? 1);
 }

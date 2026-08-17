@@ -38,9 +38,14 @@ export function useMultiplayerEngine() {
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [roomState, setRoomState] = useState<any>(null);
   const [playerId, setPlayerId] = useState<string>('');
+  // sessionStorage (not localStorage) so this device's name doesn't collide with another
+  // tab of the same browser on the same origin — playerId already uses sessionStorage for
+  // the same reason. With localStorage, two tabs testing/playing locally would silently
+  // share one name (confirmed: both players showed up as the same name in the abandon-duel
+  // leaderboard test).
   const [playerName, setPlayerNameState] = useState<string>(() => {
     try {
-      const saved = localStorage.getItem('audiofit_player_name');
+      const saved = sessionStorage.getItem('audiofit_player_name');
       if (saved && saved.trim().length > 0) return saved;
     } catch {}
     return 'Ingeniero de Audio';
@@ -49,7 +54,7 @@ export function useMultiplayerEngine() {
   const setPlayerName = useCallback((name: string) => {
     setPlayerNameState(name);
     try {
-      localStorage.setItem('audiofit_player_name', name);
+      sessionStorage.setItem('audiofit_player_name', name);
     } catch {}
   }, []);
   const [sliderHz, setSliderHz] = useState<number>(440);

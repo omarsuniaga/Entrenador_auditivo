@@ -194,10 +194,18 @@ const tests: Array<{ name: string; fn: () => void | Promise<void> }> = [
     }
   },
   {
+    // Usa un wrangler.jsonc sintético con el marcador en vez del archivo real del disco:
+    // el archivo real queda provisionado una vez completado el paso 2 de la guía de
+    // despliegue, y este test verifica la compuerta de seguridad en sí (que bloquea el
+    // marcador), no el estado de provisioning del repositorio en un momento dado.
     name: 'Declara Durable Object y cron, pero bloquea el ID D1 marcador',
     fn: () => {
       const config = readWranglerConfig();
-      const validation = validateCloudflareDeploymentConfig(config);
+      const unprovisioned = structuredClone(config);
+      const unprovisionedDatabases = unprovisioned.d1_databases as Array<{ database_id: string }>;
+      unprovisionedDatabases[0].database_id = 'REPLACE_WITH_CLOUDFLARE_D1_DATABASE_ID';
+
+      const validation = validateCloudflareDeploymentConfig(unprovisioned);
       const bindings = (config.durable_objects as { bindings?: Array<{ name: string; class_name: string }> }).bindings ?? [];
       const migrations = config.migrations as Array<{ new_sqlite_classes?: string[] }>;
       const crons = (config.triggers as { crons?: string[] }).crons ?? [];
@@ -221,13 +229,18 @@ const tests: Array<{ name: string; fn: () => void | Promise<void> }> = [
     }
   },
   {
+    // Igual que arriba: la compuerta se prueba contra un fixture sintético con el
+    // marcador, no contra el wrangler.jsonc real (que ya puede estar provisionado).
     name: 'Separa el preflight local sin credenciales de la validacion de despliegue real',
     fn: () => {
       const config = readWranglerConfig();
       const local = validateCloudflareLocalPreflight(config);
-
       assert(local.valid, `El preflight local no debe requerir D1 provisionada: ${local.errors.join(', ')}`);
-      assert(!validateCloudflareDeploymentConfig(config).valid, 'El despliegue real debe seguir bloqueado con el ID marcador.');
+
+      const unprovisioned = structuredClone(config);
+      const unprovisionedDatabases = unprovisioned.d1_databases as Array<{ database_id: string }>;
+      unprovisionedDatabases[0].database_id = 'REPLACE_WITH_CLOUDFLARE_D1_DATABASE_ID';
+      assert(!validateCloudflareDeploymentConfig(unprovisioned).valid, 'El despliegue real debe seguir bloqueado con el ID marcador.');
     }
   },
   {
